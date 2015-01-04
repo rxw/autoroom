@@ -11,8 +11,10 @@ rand = random.Random()
 
 chunk = 1024
 
+soundpath = "/home/tato/src/py/facerec/sounds/master/sound.wav"
+
 def play_sound():
-    f = wave.open("/home/tato/src/py/facerec/sounds/master/sound.wav","rb")
+    f = wave.open(soundpath,"rb")
     #instantiate PyAudio
     p = pyaudio.PyAudio()
     #open stream
