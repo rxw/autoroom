@@ -5,6 +5,7 @@ import wave
 import cv2
 import numpy as np
 import time
+#import profiles
 
 import random
 rand = random.Random()
@@ -55,7 +56,7 @@ def read_images(path, sz=None):
             for filename in os.listdir(subject_path):
                     try:
                         im = cv2.imread(os.path.join(subject_path, filename), cv2.IMREAD_GRAYSCALE)
-                        if (len(im)==0):dd
+                        if (len(im)==0):
                             continue # not an image
                         # resize to given size (if given)
                         if (sz is not None):
@@ -137,6 +138,9 @@ if __name__ == "__main__":
     images,labels,names = retrain(imgdir,model,face_size)
     print "trained:",len(images),"images",len(names),"persons"
     master = 1
+    m = 0
+    timesincemaster = 0
+    name = "unknown"
     while True:
         ret, img = cam.read()
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -146,6 +150,22 @@ if __name__ == "__main__":
 
         # roi will keep the cropped face image ( if there was one )
         roi = None
+        try:
+            if len(rects) == 0 and master == 0:
+                print str(timesincemaster)
+                timesincemaster += 1
+                if timesincemaster >= 50:
+                    master = 1
+                    name = "unknown"
+                    timesincemaster = 0
+
+        except NameError:
+            print str(timesincemaster)
+            timesincemaster += 1
+            if timesincemaster >= 50:
+                master = 1
+                timesincemaster = 0
+
         for x, y, w, h in rects:
             # crop & resize it
             roi = cv2.resize( gray[y:y+h, x:x+h], face_size )
@@ -158,14 +178,35 @@ if __name__ == "__main__":
                 name = "unknown"
                 if p_label != -1 : name = names[p_label]
                 cv2.putText( img, "%s %.2f" % (name, p_confidence),(x+10,y+20), cv2.FONT_HERSHEY_PLAIN,1.3, (0,0,255))
-                if name != "master":
-                    master = 1
-                else:
-                        if name == "master" and master == 1:
-                            play_sound()
-                            master = 0
 
             break # use only 1st detected
+        try:
+            if name != "master":
+                m = 0
+            else:
+                    if name == "master" and master == 1 and p_confidence > 40:
+                        if (time.clock() - start) > float(1):
+                            m = 0
+                        start = time.clock()
+                        m += 1
+                        if m >= 50:
+                            print p_confidence
+                            #profiles.action("master")
+                            play_sound()
+                            master = 0
+                            m = 0
+        except NameError:
+                    if name != "master":
+                        master = 1
+                    else:
+                            if name == "master" and master == 1 and p_confidence > 40:
+                                start = time.clock()
+                                m += 1
+                                if m >= 50:
+                                    print p_confidence
+                                    #profiles.action("master")
+                                    play_sound()
+                                    master = 0
 
         cv2.imshow('facedetect', img)
 
